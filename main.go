@@ -8,7 +8,6 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"log"
 	"net/http"
-	"strconv"
 )
 
 type WorldInformation struct {
@@ -23,7 +22,7 @@ func main() {
 
 	// Database
 	db, _ = sql.Open("sqlite3", "./ToGWorldInformation.db")
-	statement, _ := db.Prepare("CREATE TABLE IF NOT EXISTS world_information (id INTEGER PRIMARY KEY, worldNumber INTEGER, hits INTEGER, streamOrder TEXT)")
+	statement, _ := db.Prepare("CREATE TABLE IF NOT EXISTS World_Information (id INTEGER PRIMARY KEY, world_number INTEGER, hits INTEGER, stream_order TEXT)")
 	statement.Exec()
 
 	// Init Router
@@ -39,7 +38,7 @@ func main() {
 func getWorldInformation(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	statement, _ := db.Prepare("SELECT worldNumber, hits, streamOrder FROM world_information")
+	statement, _ := db.Prepare("SELECT world_number, hits, stream_order FROM World_Information")
 	rows, err := statement.Query()
 	if err != nil {
 		handleError("Error retrieving from db.")
@@ -54,7 +53,7 @@ func getWorldInformation(w http.ResponseWriter, r *http.Request) {
 		worldInformationList = append(worldInformationList, worldInformation)
 	}
 
-	fmt.Println(worldInformationList)
+	//fmt.Println(worldInformationList)
 
 	json.NewEncoder(w).Encode(worldInformationList)
 	return
@@ -62,18 +61,31 @@ func getWorldInformation(w http.ResponseWriter, r *http.Request) {
 
 func postWorldInformation(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	params := mux.Vars(r) // Get params. Should be world number only. Verify that. TODO: Change this so that it gets from body, not params.
 
-	worldNumber, err := strconv.Atoi(params["world_number"])
-	if err != nil {
-		handleError("Error converting world number from request params to int.")
-	}
+	var worldInformation WorldInformation
+	json.NewDecoder(r.Body).Decode(&worldInformation)
 
-	// TODO: Verify data is good (3g 3b) before adding to db.
+	dataIsValid := verifyData(worldInformation.StreamOrder)
 
-	worldNumber = worldNumber * 2 / 2
+	fmt.Println(dataIsValid)
+
 }
 
 func handleError(message string) {
 
+}
+
+func verifyData(str string) bool {
+	greenCount := 0
+	blueCount := 0
+	for _, c := range str {
+		if c == 'g' {
+			greenCount++
+		} else if c == 'b' {
+			blueCount++
+		} else {
+			return false
+		}
+	}
+	return greenCount == 3 && blueCount == 3 && len(str) == 6
 }
