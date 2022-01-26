@@ -54,7 +54,7 @@ func TestTableVerifyData(t *testing.T) {
 		{"gggggggggggggggggggggbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", false},
 	}
 	for _, test := range tests {
-		actual := verifyData(test.input)
+		actual := verifyDataIsValid(test.input)
 		if actual != test.expected {
 			t.Error(fmt.Sprintf("Test Failed: Input: %s, Expected: %t, Actual: %t", test.input, test.expected, actual))
 		}
