@@ -67,7 +67,7 @@ func postWorldInformation(w http.ResponseWriter, r *http.Request) {
 
 		// If it is, hits++ and update db
 		if entryExistsInDB {
-			incrementHitsOnExistingWorld(existingWorldInformation, db)
+			incrementHitsOnExistingWorld(&existingWorldInformation, db)
 			json.NewEncoder(w).Encode(existingWorldInformation)
 		} else { // Else add it to the db
 			newWorldInformation.Hits = 1
@@ -189,9 +189,10 @@ func queryDBForSpecificWorldInformation(worldInformation WorldInformation, datab
 }
 
 // (Update) Increment hits on existing world
-func incrementHitsOnExistingWorld(worldInformation WorldInformation, database *sql.DB) {
+func incrementHitsOnExistingWorld(worldInformation *WorldInformation, database *sql.DB) {
+	worldInformation.Hits++
 	statement, _ := db.Prepare("UPDATE World_Information SET hits=(?) WHERE world_number=(?) AND stream_order=(?)")
-	result, err := statement.Exec(worldInformation.Hits+1, worldInformation.WorldNumber, worldInformation.StreamOrder)
+	result, err := statement.Exec(worldInformation.Hits, worldInformation.WorldNumber, worldInformation.StreamOrder)
 
 	if err != nil {
 		handleError(err, "Error in incrementHitsOnExistingWorld.")
