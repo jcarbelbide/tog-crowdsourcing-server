@@ -1,3 +1,5 @@
 ToGWorldInformation.db
 TestDB.db
 test.bat
+info.log
+secretSalt.go

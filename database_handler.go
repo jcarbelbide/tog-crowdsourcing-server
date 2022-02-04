@@ -8,13 +8,28 @@ import (
 // --------------------------- Database Handling --------------------------- //
 // ------------------------------------------------------------------------- //
 
+// Init Database
+func initDatabase() {
+	// Database
+	db, _ = sql.Open("sqlite3", "./ToGWorldInformation.db")
+	statement, _ := db.Prepare("CREATE TABLE IF NOT EXISTS World_Information (wi_id INTEGER PRIMARY KEY AUTOINCREMENT, world_number INTEGER, hits INTEGER, stream_order TEXT)")
+	statement.Exec()
+
+	statement, _ = db.Prepare("CREATE TABLE IF NOT EXISTS IP_WORLD_BLACKLIST (ip_world_hash INTEGER PRIMARY KEY)")
+	statement.Exec()
+}
+
+// ------------------------------------------------------------------------- //
+// ----------------------------- World Info DB ----------------------------- //
+// ------------------------------------------------------------------------- //
+
 // Get information for ALL worlds
 func queryDBForAllWorldInformation(database *sql.DB) []WorldInformation {
 
 	statement, _ := database.Prepare("SELECT world_number, hits, stream_order FROM World_Information")
 	rows, err := statement.Query()
 	if err != nil {
-		err = createCustomError(err, "Error retrieving from db in queryDBForAllWorldInformation.")
+		err = createAndLogCustomError(err, "Error retrieving from db in queryDBForAllWorldInformation.")
 	}
 	defer rows.Close()
 
@@ -36,7 +51,7 @@ func queryDBForSpecificWorldInformation(worldInformation WorldInformation, datab
 	rows, err := statement.Query(worldInformation.WorldNumber, worldInformation.StreamOrder)
 
 	if err != nil {
-		err = createCustomError(err, "Error retrieving from db in queryDBForSpecificWorldInformation.")
+		err = createAndLogCustomError(err, "Error retrieving from db in queryDBForSpecificWorldInformation.")
 	}
 	defer rows.Close()
 
@@ -49,7 +64,7 @@ func queryDBForSpecificWorldInformation(worldInformation WorldInformation, datab
 	}
 
 	if numberOfEntries > 1 {
-		err = createCustomError(err, "There were more than one rows that had the same world_number + stream_order combination. This should not have happened.")
+		err = createAndLogCustomError(err, "There were more than one rows that had the same world_number + stream_order combination. This should not have happened.")
 	}
 
 	entryExistsInDB := numberOfEntries == 1
@@ -64,11 +79,11 @@ func incrementHitsOnExistingWorld(worldInformation *WorldInformation, database *
 	result, err := statement.Exec(worldInformation.Hits, worldInformation.WorldNumber, worldInformation.StreamOrder)
 
 	if err != nil {
-		err = createCustomError(err, "Error in incrementHitsOnExistingWorld.")
+		err = createAndLogCustomError(err, "Error in incrementHitsOnExistingWorld.")
 	}
 
 	if numRowsAffected, _ := result.RowsAffected(); numRowsAffected != 1 {
-		err = createCustomError(err, "More than one rows (or 0) were updated in incrementHitsOnExistingWorld.")
+		err = createAndLogCustomError(err, "More than one rows (or 0) were updated in incrementHitsOnExistingWorld.")
 	}
 
 }
@@ -78,41 +93,58 @@ func addNewWorldInformation(worldInformation WorldInformation, database *sql.DB)
 	statement, _ := db.Prepare("INSERT INTO World_Information (world_number, hits, stream_order) VALUES ((?), (?), (?))")
 	_, err := statement.Exec(worldInformation.WorldNumber, 1, worldInformation.StreamOrder)
 	if err != nil {
-		err = createCustomError(err, "Error retrieving from db in queryDBForSpecificWorldInformation.")
+		err = createAndLogCustomError(err, "Error retrieving from db in queryDBForSpecificWorldInformation.")
 	}
 
 }
 
-func hasIPAlreadySubmittedDataForWorld(worldNumber int, ipAddress string, database *sql.DB) (bool, error) {
-	statement, _ := database.Prepare("SELECT world_number, ip_address FROM IP_List WHERE world_number=(?) AND ip_address=(?)")
-	rows, err := statement.Query(worldNumber, ipAddress)
+// ------------------------------------------------------------------------- //
+// ---------------------- IP_WORLD_BLACKLIST Handling ---------------------- //
+// ------------------------------------------------------------------------- //
 
-	if err != nil {
-		err = createCustomError(err, "Error retrieving from db in hasIPAlreadySubmittedDataForWorld.")
-	}
-	defer rows.Close()
-
-	var dbWorldNumber int
-	var dbIPAddress string
+func hasIPAlreadySubmittedDataForWorld(ipAddress string, worldNumber int, database *sql.DB) (bool, error) {
+	ipWorldHash := hashIPAndWorldInfo(ipAddress, worldNumber)
 	loopCount := 0
-
-	for rows.Next() {
-		rows.Scan(&dbWorldNumber, &dbIPAddress)
-		loopCount++
-	}
+	var err error
+	database.QueryRow("SELECT COUNT(ip_world_hash) FROM IP_WORLD_BLACKLIST WHERE ip_world_hash=(?)", ipWorldHash).Scan(&loopCount)
+	//statement, _ := database.Prepare("SELECT ip_world_hash FROM IP_WORLD_BLACKLIST WHERE ip_world_hash=(?)")
+	//rows, err := statement.Query(ipWorldHash)
+	//
+	//if err != nil {
+	//	err = createAndLogCustomError(err, "Error retrieving from db in hasIPAlreadySubmittedDataForWorld.")
+	//}
+	//defer rows.Close()
+	//
+	//var dbWorldNumber int
+	//var dbIPAddress string
+	//loopCount := 0
+	//
+	//for rows.Next() {
+	//	rows.Scan(&dbWorldNumber, &dbIPAddress)
+	//	loopCount++
+	//}
 
 	if loopCount == 0 {
 		return false, err
 
-	} else if loopCount > 1 {
-		err = createCustomError(err, "IP Address has more than one submissions...")
-
 	} else if loopCount == 1 {
-		// This is the valid case where the IP has already one submission and we should return no error and true (already submitted)
+		// This is the valid case where the IP has already one submission, and we should return no error and true (already submitted)
+
+	} else if loopCount > 1 {
+		err = createAndLogCustomError(err, "IP Address has more than one submissions...")
 
 	} else {
-		err = createCustomError(err, "This should be impossible. Code 1")
+		err = createAndLogCustomError(err, "This should be impossible. Code 1")
 	}
 
 	return true, err
+}
+
+func addIPAndWorldToDB(worldInformation WorldInformation, ipAddress string, database *sql.DB) {
+	ipWorldHash := hashIPAndWorldInfo(ipAddress, worldInformation.WorldNumber)
+	statement, _ := database.Prepare("INSERT INTO IP_WORLD_BLACKLIST (ip_world_hash) Values ((?))")
+	_, err := statement.Exec(ipWorldHash)
+	if err != nil {
+		err = createAndLogCustomError(err, "Error inserting into db in addIPAndWorldtoDB.")
+	}
 }

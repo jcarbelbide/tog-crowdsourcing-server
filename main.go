@@ -3,12 +3,10 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"github.com/gorilla/mux"
 	_ "github.com/mattn/go-sqlite3"
 	"log"
 	"net/http"
-	"os"
 )
 
 type WorldInformation struct {
@@ -31,12 +29,7 @@ func main() {
 	defer logFile.Close()
 
 	// Database
-	db, _ = sql.Open("sqlite3", "./ToGWorldInformation.db")
-	statement, _ := db.Prepare("CREATE TABLE IF NOT EXISTS World_Information (wi_id INTEGER PRIMARY KEY AUTOINCREMENT, world_number INTEGER, hits INTEGER, stream_order TEXT)")
-	statement.Exec()
-
-	statement, _ = db.Prepare("CREATE TABLE IF NOT EXISTS IP_List (ip_id INTEGER PRIMARY KEY AUTOINCREMENT, world_number INTEGER, ip_address TEXT)")
-	statement.Exec()
+	initDatabase()
 
 	// Init Router
 	r := mux.NewRouter()
@@ -63,18 +56,22 @@ func getWorldInformation(w http.ResponseWriter, r *http.Request) {
 func postWorldInformation(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
+	remoteIPAddress := getRemoteIPAddressFromRequest(r)
 	var newWorldInformation WorldInformation
 	json.NewDecoder(r.Body).Decode(&newWorldInformation)
 
 	dataIsValid := verifyDataIsValid(newWorldInformation)
-	ipAddressIsValid, err := verifyIPAddressIsValid(newWorldInformation, r, db)
+	if !dataIsValid {
+		return
+	} // return early if data is garbage
+
+	ipAddressIsValid, err := verifyIPAddressIsValid(newWorldInformation, remoteIPAddress, db)
 	if err != nil {
 		log.Println(err)
 	}
 
 	if ipAddressIsValid {
-		// TODO Add the IP + world to the database. Will just have 1 table for the IPs. Each row will be a world number + IP.
-
+		addIPAndWorldToDB(newWorldInformation, remoteIPAddress, db)
 	} else {
 		return
 	}
@@ -95,23 +92,4 @@ func postWorldInformation(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-}
-
-// -------------------------------------------------------------------------- //
-// ---------------------------- Helper Functions ---------------------------- //
-// -------------------------------------------------------------------------- //
-
-func createCustomError(err error, message string) error {
-	return fmt.Errorf(message, err)
-}
-
-func initLogging() *os.File {
-	file, err := os.OpenFile("./logs/info.log", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	log.SetOutput(file)
-
-	return file
 }

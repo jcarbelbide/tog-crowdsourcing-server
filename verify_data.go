@@ -2,9 +2,7 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"net"
-	"net/http"
 )
 
 // -------------------------------------------------------------------------- //
@@ -33,9 +31,8 @@ func verifyStreamOrderIsValid(str string) bool {
 	return greenCount == 3 && blueCount == 3 && len(str) == 6
 }
 
-func verifyIPAddressIsValid(worldInformation WorldInformation, r *http.Request, database *sql.DB) (bool, error) {
+func verifyIPAddressIsValid(worldInformation WorldInformation, remoteIPAddress string, database *sql.DB) (bool, error) {
 
-	// TODO: In this function, we want to make sure that any one ip address is not sending so many requests
 	// Since we cannot stop people from sending bad requests, we will have to settle for limiting the number
 	// of requests one ip can send without hindering the ability for legitimate users to send data to the server.
 	// Legitimate users will only have to send data to the server once per world per server reset, since the data should
@@ -56,21 +53,18 @@ func verifyIPAddressIsValid(worldInformation WorldInformation, r *http.Request, 
 	// Return true if the entry DNE, and return false if the entry exists. Error if there is more than one entry.
 	// Things to watch out for: if IP is "" or some other garbage, should it be added to list? - No, only add valid IPs
 
-	remoteIPAddress := r.Header.Get("X-FORWARDED-FOR") // It is this because our NGinX server is forwarding the remote IP to us.
-	fmt.Println("Forward: ", remoteIPAddress)
-	fmt.Println("request.RemoteAddr: ", r.RemoteAddr)
 	var err error
 
 	// First check if the ip address is a valid IPv4 address
 	if net.ParseIP(remoteIPAddress) == nil {
-		err = createCustomError(nil, "Not valid IPv4 address")
+		err = createAndLogCustomError(nil, "Not valid IPv4 address")
 		return false, err
 	}
 
 	// Check if IP has already submitted an order for that world. Do not care about the order, just care about the world. Each IP gets 1 submission per world.
 
 	// If IP + world combo exists, return false. IP address is not valid.
-	ipAlreadySubmittedDataForWorld, err := hasIPAlreadySubmittedDataForWorld(worldInformation.WorldNumber, remoteIPAddress, db)
+	ipAlreadySubmittedDataForWorld, err := hasIPAlreadySubmittedDataForWorld(remoteIPAddress, worldInformation.WorldNumber, db)
 	if ipAlreadySubmittedDataForWorld {
 		return false, err
 

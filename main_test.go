@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestTableVerifyData(t *testing.T) {
+func TestVerifyData(t *testing.T) {
 	var tests = []struct {
 		inputWorldNumber int
 		inputStreamOrder string
@@ -86,7 +86,7 @@ func TestVerifyStreamOrder(t *testing.T) {
 func TestHasIPAlreadySubmittedDataForWorld(t *testing.T) {
 	// Database
 	testDB, _ := sql.Open("sqlite3", "./TestDB.db")
-	statement, _ := testDB.Prepare("CREATE TABLE IF NOT EXISTS IP_List (ip_id INTEGER PRIMARY KEY AUTOINCREMENT, world_number INTEGER, ip_address TEXT)")
+	statement, _ := testDB.Prepare("CREATE TABLE IF NOT EXISTS IP_WORLD_BLACKLIST (ip_world_hash INTEGER PRIMARY KEY)")
 	statement.Exec()
 
 	var ipWorldList = []struct {
@@ -100,9 +100,10 @@ func TestHasIPAlreadySubmittedDataForWorld(t *testing.T) {
 		{456, "123"},
 	}
 
+	statement, _ = testDB.Prepare("INSERT INTO IP_WORLD_BLACKLIST (ip_world_hash) VALUES ((?))")
 	for _, v := range ipWorldList {
-		statement, _ = testDB.Prepare("INSERT INTO IP_List (world_number, ip_address) VALUES ((?), (?))")
-		statement.Exec(v.worldNumber, v.ipAddress)
+		ipWorldHash := hashIPAndWorldInfo(v.ipAddress, v.worldNumber)
+		statement.Exec(ipWorldHash)
 	}
 
 	var tests = []struct {
@@ -119,13 +120,13 @@ func TestHasIPAlreadySubmittedDataForWorld(t *testing.T) {
 		{301, "12345", true},
 	}
 	for _, test := range tests {
-		actual, _ := hasIPAlreadySubmittedDataForWorld(test.inputWorld, test.inputIPAddress, testDB)
+		actual, _ := hasIPAlreadySubmittedDataForWorld(test.inputIPAddress, test.inputWorld, testDB)
 		if actual != test.expectedOutput {
 			t.Error(fmt.Sprintf("Test Failed: Input: %d, %s, Expected: %t, Actual: %t", test.inputWorld, test.inputIPAddress, test.expectedOutput, actual))
 		}
 	}
 
-	statement, _ = testDB.Prepare("DROP TABLE IP_List")
+	statement, _ = testDB.Prepare("DROP TABLE IP_WORLD_BLACKLIST")
 	statement.Exec()
 
 }
