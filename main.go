@@ -67,7 +67,7 @@ func postWorldInformation(w http.ResponseWriter, r *http.Request) {
 
 	ipAddressIsValid, err := verifyIPAddressIsValid(newWorldInformation, remoteIPAddress, db)
 	if err != nil {
-		log.Println(err)
+		err = createAndLogCustomError(err, "Error when trying to verify if IP address was valid")
 	}
 
 	if ipAddressIsValid {

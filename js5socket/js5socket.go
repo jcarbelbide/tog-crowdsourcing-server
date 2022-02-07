@@ -3,37 +3,47 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net"
-	"net/url"
+	"time"
 )
 
 func main() {
 
 	addr := "oldschool2.runescape.com:43594"
-	//addr := "webcode.me:80"
+	timeoutDuration := 5000 * time.Millisecond
+	sleepDuration := 5000 * time.Millisecond
 
-	u := url.URL{Scheme: "ws", Host: addr}
-	log.Printf("connecting to %s", u.String())
+	fmt.Println(addr)
+	conn, err := net.Dial("tcp", addr)
+	defer conn.Close()
 
-	//c, r, e := websocket.DefaultDialer.Dial(u.String(), nil)
-	//fmt.Println(r)
-	c, e := net.Dial("tcp", addr)
-	defer c.Close()
+	if err != nil {
+		fmt.Println("Error establishing connection")
+	}
 
-	//_, e = c.Write([]byte("15"))
-	//write24(c)
+	var req byte = 255
+	var reqArray []byte
 
-	req := "HEAD / HTTP/1.0\r\n\r\n"
-	//req := ""
-	_, e = c.Write([]byte(req))
-	resp, e := ioutil.ReadAll(c)
+	for {
+		reqArray = append(reqArray, req)
+		conn.SetWriteDeadline(time.Now().Add(timeoutDuration))
+		_, err = conn.Write(reqArray)
 
-	//resp, e := c.Read([]byte("255"))
+		conn.SetReadDeadline(time.Now().Add(timeoutDuration))
+		resp, err := ioutil.ReadAll(conn)
 
-	fmt.Println(c)
-	fmt.Println(string(resp))
-	fmt.Println(e)
+		fmt.Println(conn)
+		fmt.Println(string(resp))
+		fmt.Println(err)
+
+		if err != nil {
+			fmt.Println("Connection broken!")
+			break
+		}
+
+		time.Sleep(sleepDuration)
+
+	}
 
 }
 
