@@ -9,15 +9,15 @@ import (
 
 func main() {
 
-	js5 := js5connection.New()
-	fmt.Println(js5.WriteJS5Header())
-	fmt.Println(js5.Ping())
+	js5, err := js5connection.New()
+	fmt.Println(err)
+	//fmt.Println(js5.Ping())
 
 	var loopCounter float64 = 0
 	for {
 		resp, err := js5.Ping()
 		elapsedTime := js5.PingInterval.Seconds() * loopCounter
-		fmt.Println("Resp ", resp, " |  Error: ", err, " |  Seconds Elapsed: ", elapsedTime)
+		fmt.Println("Resp ", resp[:10], " |  Error: ", err, " |  Seconds Elapsed: ", elapsedTime)
 		if err != nil {
 			fmt.Println("Connection broken! at " + time.Now().String())
 			break

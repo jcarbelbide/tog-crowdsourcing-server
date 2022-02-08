@@ -15,7 +15,7 @@ import (
 // -------------------------------------------------------------------------- //
 
 func createAndLogCustomError(err error, message string) error {
-	newErr := fmt.Errorf(message, err)
+	newErr := fmt.Errorf(message+" %w", err)
 	log.Println(newErr)
 	return newErr
 }

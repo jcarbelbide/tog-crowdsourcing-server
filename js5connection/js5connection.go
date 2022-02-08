@@ -1,8 +1,8 @@
 package js5connection
 
 import (
+	"bytes"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"time"
 )
@@ -23,7 +23,13 @@ type js5conn struct {
 	conn         net.Conn
 	PingInterval time.Duration
 	timeout      time.Duration
+	buf          []byte
 }
+
+var (
+	revMismatch []byte = intToByteArray(6)
+	revMatch    []byte = intToByteArray(0)
+)
 
 func (c *js5conn) Ping() ([]byte, error) {
 	err := c.writePID()
@@ -31,7 +37,7 @@ func (c *js5conn) Ping() ([]byte, error) {
 		return nil, err
 	}
 
-	return ioutil.ReadAll(c.conn)
+	return c.read()
 
 }
 
@@ -41,37 +47,37 @@ func (c *js5conn) writeByte(data int) error {
 }
 
 func (c *js5conn) writeInt(data int) error {
-	_, err := c.write(intToByteArray((data >> 24) & 0xFF))
+	err := c.writeByte((data >> 24) & 0xFF)
 	if err != nil {
 		return err
 	}
 
-	_, err = c.write(intToByteArray((data >> 16) & 0xFF))
+	err = c.writeByte((data >> 16) & 0xFF)
 	if err != nil {
 		return err
 	}
 
-	_, err = c.write(intToByteArray((data >> 8) & 0xFF))
+	err = c.writeByte((data >> 8) & 0xFF)
 	if err != nil {
 		return err
 	}
 
-	_, err = c.write(intToByteArray((data >> 0) & 0xFF))
+	err = c.writeByte((data >> 0) & 0xFF)
 	return err
 }
 
-func (c *js5conn) WriteJS5Header() ([]byte, error) {
+func (c *js5conn) WriteJS5Header(rev int) ([]byte, error) {
 	err := c.writeByte(15)
 	if err != nil {
 		return nil, err
 	}
 
-	err = c.writeInt(0)
+	err = c.writeInt(rev)
 	if err != nil {
 		return nil, err
 	}
 
-	return ioutil.ReadAll(c.conn)
+	return c.read()
 
 }
 
@@ -86,6 +92,15 @@ func (c *js5conn) setReadTimeout(duration time.Duration) {
 func (c *js5conn) write(b []byte) (int, error) {
 	c.setWriteTimeout(c.timeout)
 	return c.conn.Write(b)
+}
+
+func (c *js5conn) read() ([]byte, error) {
+	c.setReadTimeout(c.timeout)
+	n, err := c.conn.Read(c.buf)
+
+	returnArray := c.buf[:n]
+	c.buf = createNewBuffer()
+	return returnArray, err
 }
 
 func (c *js5conn) writePID() error {
@@ -115,18 +130,53 @@ func (c *js5conn) writePID() error {
 }
 
 func intToByteArray(num int) []byte {
-	return append(make([]byte, 0), byte(num))
+	//return append(make([]byte, 0), byte(num))
+	return []byte{byte(num)}
 }
 
-func New() *js5conn {
+func createNewJS5Connection() *js5conn {
 	addr := "oldschool2.runescape.com:43594"
 	conn, _ := net.Dial("tcp", addr)
-
 	var c = js5conn{
 		conn:         conn,
 		PingInterval: 5000 * time.Millisecond,
 		timeout:      5000 * time.Millisecond,
+		buf:          createNewBuffer(),
 	}
-
 	return &c
+}
+
+func createNewBuffer() []byte {
+	return make([]byte, 0xFFFF)
+}
+
+func createJS5Connection(rev int) (*js5conn, error) {
+
+	var c *js5conn
+	for i := 0; ; i++ {
+		c = createNewJS5Connection()
+
+		status, err := c.WriteJS5Header(rev)
+		if err != nil {
+			return nil, err
+		}
+
+		if bytes.Compare(status, revMatch) == 0 {
+			break
+		}
+
+		if bytes.Compare(status, revMismatch) == 0 {
+			rev++
+			fmt.Println("Got rev mismatch, bumping to ", rev)
+			continue
+		}
+
+		return nil, fmt.Errorf("failed to create JS5 Connection %w", err)
+	}
+	fmt.Println("Rev settled on: ", rev)
+	return c, nil
+}
+
+func New() (*js5conn, error) {
+	return createJS5Connection(202)
 }
