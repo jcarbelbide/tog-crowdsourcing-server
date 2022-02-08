@@ -10,12 +10,14 @@ import (
 func main() {
 
 	js5 := js5connection.New()
-	fmt.Println(js5.TestInitialConnection())
+	fmt.Println(js5.WriteJS5Header())
+	fmt.Println(js5.Ping())
+
 	var loopCounter float64 = 0
 	for {
-		err := js5.Ping()
+		resp, err := js5.Ping()
 		elapsedTime := js5.PingInterval.Seconds() * loopCounter
-		fmt.Println("Error: ", err, " |  Seconds Elapsed: ", elapsedTime)
+		fmt.Println("Resp ", resp, " |  Error: ", err, " |  Seconds Elapsed: ", elapsedTime)
 		if err != nil {
 			fmt.Println("Connection broken! at " + time.Now().String())
 			break
@@ -23,45 +25,6 @@ func main() {
 		time.Sleep(js5.PingInterval)
 		loopCounter++
 	}
-
-	//sleepDuration := 5000 * time.Millisecond
-	//addr := "oldschool2.runescape.com:43594"
-	//
-	//fmt.Println(addr)
-	//conn, err := net.Dial("tcp", addr)
-	//defer conn.Close()
-	//
-	//if err != nil {
-	//	fmt.Println("Error establishing connection")
-	//}
-	//
-	////var req byte = 0xFF
-	////var rev byte = 0xff
-	////var reqArray []byte
-	//var resp []byte
-	//
-	//for {
-	//	conn.SetWriteDeadline(time.Now().Add(timeoutDuration))
-	//	_, err = conn.Write(intToByteArray(15))
-	//
-	//	conn.SetWriteDeadline(time.Now().Add(timeoutDuration))
-	//	err = writeInt(0, conn)
-	//
-	//	conn.SetReadDeadline(time.Now().Add(timeoutDuration))
-	//	resp, err = ioutil.ReadAll(conn)
-	//
-	//	fmt.Println(conn)
-	//	fmt.Println(resp)
-	//	fmt.Println(err)
-	//
-	//	if err != nil {
-	//		fmt.Println("Connection broken!")
-	//		break
-	//	}
-	//
-	//	time.Sleep(sleepDuration)
-	//
-	//}
 
 }
 

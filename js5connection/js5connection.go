@@ -1,6 +1,7 @@
 package js5connection
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net"
 	"time"
@@ -13,15 +14,7 @@ import (
 // determine when the Runescape servers have been reset. If the servers
 // have been reset, then the socket connection will be closed.
 type JS5Connection interface {
-	WriteByte() error
-
-	WriteInt() error
-
-	testInitialConnection() (int, error)
-
-	setWriteTimeout(duration time.Duration)
-
-	setReadTimeout(duration time.Duration)
+	WriteJS5Header() (int, error)
 
 	Ping() error
 }
@@ -32,15 +25,13 @@ type js5conn struct {
 	timeout      time.Duration
 }
 
-func (c *js5conn) Ping() error {
-	err := c.writeByte(255)
+func (c *js5conn) Ping() ([]byte, error) {
+	err := c.writePID()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	_, err = ioutil.ReadAll(c.conn)
-
-	return err
+	return ioutil.ReadAll(c.conn)
 
 }
 
@@ -69,7 +60,7 @@ func (c *js5conn) writeInt(data int) error {
 	return err
 }
 
-func (c *js5conn) TestInitialConnection() ([]byte, error) {
+func (c *js5conn) WriteJS5Header() ([]byte, error) {
 	err := c.writeByte(15)
 	if err != nil {
 		return nil, err
@@ -95,6 +86,32 @@ func (c *js5conn) setReadTimeout(duration time.Duration) {
 func (c *js5conn) write(b []byte) (int, error) {
 	c.setWriteTimeout(c.timeout)
 	return c.conn.Write(b)
+}
+
+func (c *js5conn) writePID() error {
+	pid := 255<<16 | 255
+
+	err := c.writeByte(1)
+	if err != nil {
+		fmt.Println("testRequest Code 1")
+		return err
+	}
+
+	err = c.writeByte(pid >> 16)
+	if err != nil {
+		fmt.Println("testRequest Code 2")
+		return err
+	}
+
+	err = c.writeByte(pid >> 8)
+	if err != nil {
+		fmt.Println("testRequest Code 3")
+		return err
+	}
+
+	err = c.writeByte(pid)
+
+	return err
 }
 
 func intToByteArray(num int) []byte {
