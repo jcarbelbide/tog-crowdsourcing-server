@@ -5,7 +5,7 @@ import (
 )
 
 // ------------------------------------------------------------------------- //
-// --------------------------- Database Handling --------------------------- //
+// ----------------------------- Database Init ----------------------------- //
 // ------------------------------------------------------------------------- //
 
 // Init Database
@@ -15,7 +15,7 @@ func initDatabase() {
 	statement, _ := db.Prepare("CREATE TABLE IF NOT EXISTS World_Information (wi_id INTEGER PRIMARY KEY AUTOINCREMENT, world_number INTEGER, hits INTEGER, stream_order TEXT)")
 	statement.Exec()
 
-	statement, _ = db.Prepare("CREATE TABLE IF NOT EXISTS IP_WORLD_BLACKLIST (ip_world_hash INTEGER PRIMARY KEY)")
+	statement, _ = db.Prepare("CREATE TABLE IF NOT EXISTS IP_World_Blacklist (ip_world_hash INTEGER PRIMARY KEY)")
 	statement.Exec()
 }
 
@@ -75,7 +75,7 @@ func queryDBForSpecificWorldInformation(worldInformation WorldInformation, datab
 // (Update) Increment hits on existing world
 func incrementHitsOnExistingWorld(worldInformation *WorldInformation, database *sql.DB) {
 	worldInformation.Hits++
-	statement, _ := db.Prepare("UPDATE World_Information SET hits=(?) WHERE world_number=(?) AND stream_order=(?)")
+	statement, _ := database.Prepare("UPDATE World_Information SET hits=(?) WHERE world_number=(?) AND stream_order=(?)")
 	result, err := statement.Exec(worldInformation.Hits, worldInformation.WorldNumber, worldInformation.StreamOrder)
 
 	if err != nil {
@@ -90,39 +90,23 @@ func incrementHitsOnExistingWorld(worldInformation *WorldInformation, database *
 
 // Create new world
 func addNewWorldInformation(worldInformation WorldInformation, database *sql.DB) {
-	statement, _ := db.Prepare("INSERT INTO World_Information (world_number, hits, stream_order) VALUES ((?), (?), (?))")
+	statement, _ := database.Prepare("INSERT INTO World_Information (world_number, hits, stream_order) VALUES ((?), (?), (?))")
 	_, err := statement.Exec(worldInformation.WorldNumber, 1, worldInformation.StreamOrder)
 	if err != nil {
-		err = createAndLogCustomError(err, "Error retrieving from db in queryDBForSpecificWorldInformation.")
+		err = createAndLogCustomError(err, "Error adding to db in addNewWorldInformation.")
 	}
 
 }
 
 // ------------------------------------------------------------------------- //
-// ---------------------- IP_WORLD_BLACKLIST Handling ---------------------- //
+// ---------------------- IP_World_Blacklist Handling ---------------------- //
 // ------------------------------------------------------------------------- //
 
 func hasIPAlreadySubmittedDataForWorld(ipAddress string, worldNumber int, database *sql.DB) (bool, error) {
 	ipWorldHash := hashIPAndWorldInfo(ipAddress, worldNumber)
 	loopCount := 0
 	var err error
-	database.QueryRow("SELECT COUNT(ip_world_hash) FROM IP_WORLD_BLACKLIST WHERE ip_world_hash=(?)", ipWorldHash).Scan(&loopCount)
-	//statement, _ := database.Prepare("SELECT ip_world_hash FROM IP_WORLD_BLACKLIST WHERE ip_world_hash=(?)")
-	//rows, err := statement.Query(ipWorldHash)
-	//
-	//if err != nil {
-	//	err = createAndLogCustomError(err, "Error retrieving from db in hasIPAlreadySubmittedDataForWorld.")
-	//}
-	//defer rows.Close()
-	//
-	//var dbWorldNumber int
-	//var dbIPAddress string
-	//loopCount := 0
-	//
-	//for rows.Next() {
-	//	rows.Scan(&dbWorldNumber, &dbIPAddress)
-	//	loopCount++
-	//}
+	database.QueryRow("SELECT COUNT(ip_world_hash) FROM IP_World_Blacklist WHERE ip_world_hash=(?)", ipWorldHash).Scan(&loopCount)
 
 	if loopCount == 0 {
 		return false, err
@@ -142,7 +126,7 @@ func hasIPAlreadySubmittedDataForWorld(ipAddress string, worldNumber int, databa
 
 func addIPAndWorldToDB(worldInformation WorldInformation, ipAddress string, database *sql.DB) {
 	ipWorldHash := hashIPAndWorldInfo(ipAddress, worldInformation.WorldNumber)
-	statement, _ := database.Prepare("INSERT INTO IP_WORLD_BLACKLIST (ip_world_hash) Values ((?))")
+	statement, _ := database.Prepare("INSERT INTO IP_World_Blacklist (ip_world_hash) Values ((?))")
 	_, err := statement.Exec(ipWorldHash)
 	if err != nil {
 		err = createAndLogCustomError(err, "Error inserting into db in addIPAndWorldtoDB.")

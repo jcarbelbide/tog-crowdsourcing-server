@@ -20,11 +20,16 @@ type JS5Connection interface {
 }
 
 type js5conn struct {
-	conn         net.Conn
-	PingInterval time.Duration
-	timeout      time.Duration
-	buf          []byte
+	conn    net.Conn
+	timeout time.Duration
+	buf     []byte
 }
+
+const (
+	PingInterval time.Duration = 5000 * time.Millisecond
+	js5Rev       int           = 202
+	// TODO: Put this in a file and uprev file when new rev detected
+)
 
 var (
 	revMismatch []byte = intToByteArray(6)
@@ -108,19 +113,19 @@ func (c *js5conn) writePID() error {
 
 	err := c.writeByte(1)
 	if err != nil {
-		fmt.Println("testRequest Code 1")
+		fmt.Println("writePID Code 1")
 		return err
 	}
 
 	err = c.writeByte(pid >> 16)
 	if err != nil {
-		fmt.Println("testRequest Code 2")
+		fmt.Println("writePID Code 2")
 		return err
 	}
 
 	err = c.writeByte(pid >> 8)
 	if err != nil {
-		fmt.Println("testRequest Code 3")
+		fmt.Println("writePID Code 3")
 		return err
 	}
 
@@ -138,10 +143,9 @@ func createNewJS5Connection() *js5conn {
 	addr := "oldschool2.runescape.com:43594"
 	conn, _ := net.Dial("tcp", addr)
 	var c = js5conn{
-		conn:         conn,
-		PingInterval: 5000 * time.Millisecond,
-		timeout:      5000 * time.Millisecond,
-		buf:          createNewBuffer(),
+		conn:    conn,
+		timeout: 5000 * time.Millisecond,
+		buf:     createNewBuffer(),
 	}
 	return &c
 }
@@ -178,5 +182,5 @@ func createJS5Connection(rev int) (*js5conn, error) {
 }
 
 func New() (*js5conn, error) {
-	return createJS5Connection(202)
+	return createJS5Connection(js5Rev)
 }

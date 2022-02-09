@@ -7,6 +7,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"log"
 	"net/http"
+	"tog-crowdsourcing-server/js5client"
 )
 
 type WorldInformation struct {
@@ -28,6 +29,9 @@ func main() {
 	logFile := initLogging()
 	defer logFile.Close()
 
+	// Start JS5 Monitor
+	go js5client.MonitorJS5Server()
+
 	// Database
 	initDatabase()
 
@@ -35,14 +39,24 @@ func main() {
 	r := mux.NewRouter()
 
 	// Route Handlers / Endpoints
-	r.HandleFunc("/worldInformation", getWorldInformation).Methods("GET")
-	r.HandleFunc("/worldInformation", postWorldInformation).Methods("POST")
+	r.HandleFunc("/worldinformation", getWorldInformation).Methods("GET")
+	r.HandleFunc("/worldinformation", postWorldInformation).Methods("POST")
+
+	r.HandleFunc("/lastreset", getLastReset).Methods("GET")
+
 	log.Fatal(http.ListenAndServe(":8080", r))
 }
 
 // -------------------------------------------------------------------------- //
 // ---------------------------- Request Handlers ---------------------------- //
 // -------------------------------------------------------------------------- //
+
+func getLastReset(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	lastReset := js5client.LastServerResetInfo
+	json.NewEncoder(w).Encode(lastReset)
+	return
+}
 
 func getWorldInformation(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
