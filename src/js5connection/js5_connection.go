@@ -27,7 +27,7 @@ type js5conn struct {
 
 const (
 	PingInterval time.Duration = 5000 * time.Millisecond
-	js5Rev       int           = 202
+	js5Rev       int           = 203
 	// TODO: Put this in a file and uprev file when new rev detected
 )
 
@@ -139,15 +139,15 @@ func intToByteArray(num int) []byte {
 	return []byte{byte(num)}
 }
 
-func createNewJS5Connection() *js5conn {
+func createNewJS5Connection() (*js5conn, error) {
 	addr := "oldschool2.runescape.com:43594"
-	conn, _ := net.Dial("tcp", addr)
+	conn, err := net.Dial("tcp", addr)
 	var c = js5conn{
 		conn:    conn,
 		timeout: 5000 * time.Millisecond,
 		buf:     createNewBuffer(),
 	}
-	return &c
+	return &c, err
 }
 
 func createNewBuffer() []byte {
@@ -157,10 +157,16 @@ func createNewBuffer() []byte {
 func createJS5Connection(rev int) (*js5conn, error) {
 
 	var c *js5conn
+	var err error
+	var status []byte
 	for i := 0; ; i++ {
-		c = createNewJS5Connection()
+		c, err = createNewJS5Connection()
+		if err != nil {
+			fmt.Println(err.Error())
+			return nil, err
+		}
 
-		status, err := c.WriteJS5Header(rev)
+		status, err = c.WriteJS5Header(rev)
 		if err != nil {
 			return nil, err
 		}

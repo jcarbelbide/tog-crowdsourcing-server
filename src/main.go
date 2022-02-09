@@ -24,6 +24,8 @@ const (
 )
 
 func main() {
+	// TODO: Add unix time to server info.
+	// TODO: Change name of senconds since last server reset to server up for or something
 
 	// Init Logger
 	logFile := initLogging()
