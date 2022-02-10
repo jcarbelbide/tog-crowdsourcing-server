@@ -5,3 +5,6 @@ info.log
 secretSalt.go
 ServerResetTimes.db
 js5client/ServerResetTimes.db
+rebuild.sh
+nano.save
+secretSalt.go.save
