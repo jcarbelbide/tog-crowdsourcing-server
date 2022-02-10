@@ -19,20 +19,22 @@ type WorldInformation struct {
 var db *sql.DB
 
 const (
-	MIN_WORLD_VALUE = 300
-	MAX_WORLD_VALUE = 1000 // allowing for Jagex to add plenty more servers.
+	minWorldValue = 300
+	maxWorldValue = 1000 // allowing for Jagex to add plenty more servers.
 )
 
 func main() {
 	// TODO: Add unix time to server info.
 	// TODO: Change name of senconds since last server reset to server up for or something
+	// TODO: Change prints to logging
 
 	// Init Logger
 	logFile := initLogging()
 	defer logFile.Close()
 
 	// Start JS5 Monitor
-	go js5client.MonitorJS5Server()
+	js5client.MonitorJS5Server()
+	return
 
 	// Database
 	initDatabase()

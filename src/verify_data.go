@@ -10,7 +10,7 @@ import (
 // -------------------------------------------------------------------------- //
 
 func verifyDataIsValid(worldInformation WorldInformation) bool {
-	worldNumberIsValid := worldInformation.WorldNumber > MIN_WORLD_VALUE && worldInformation.WorldNumber < MAX_WORLD_VALUE
+	worldNumberIsValid := worldInformation.WorldNumber > minWorldValue && worldInformation.WorldNumber < maxWorldValue
 	streamOrderIsValid := verifyStreamOrderIsValid(worldInformation.StreamOrder)
 
 	return worldNumberIsValid && streamOrderIsValid

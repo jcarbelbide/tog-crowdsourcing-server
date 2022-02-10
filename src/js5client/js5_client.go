@@ -8,8 +8,9 @@ import (
 )
 
 type ServerResetInfo struct {
-	LastResetTime         time.Time `json:"reset_time"`
-	SecondsSinceLastReset int64     `json:"seconds_since_last_reset"`
+	LastResetTime     time.Time `json:"reset_time"`
+	LastResetTimeUnix int64     `json:"last_reset_time_unix"`
+	LastServerUptime  int64     `json:"last_server_uptime"`
 }
 
 var LastServerResetInfo *ServerResetInfo
@@ -61,21 +62,23 @@ func MonitorJS5Server() {
 		}
 
 		for { // Pinging Loop. Ping until connection drops
-			_, err := js5.Ping()
-			if err != nil {
-				break
-			}
-			//var input string
-			//fmt.Scanln(&input)
-			//if input == "y" {
+			//_, err := js5.Ping()
+			//if err != nil {
 			//	break
 			//}
+
+			var input string
+			fmt.Scanln(&input)
+			if input == "y" {
+				break
+			}
 			time.Sleep(js5connection.PingInterval)
 		}
 
 		currentServerResetInfo := ServerResetInfo{
-			LastResetTime:         time.Now(),
-			SecondsSinceLastReset: time.Now().Unix() - LastServerResetInfo.LastResetTime.Unix(),
+			LastResetTime:     time.Now(),
+			LastResetTimeUnix: time.Now().Unix(),
+			LastServerUptime:  time.Now().Unix() - LastServerResetInfo.LastResetTimeUnix,
 		}
 
 		addNewServerResetInfo(currentServerResetInfo, db)
@@ -92,8 +95,9 @@ func initServerResetInfo(database *sql.DB) *ServerResetInfo {
 
 	if !entryExists {
 		lastServerReset = ServerResetInfo{
-			LastResetTime:         time.Now(),
-			SecondsSinceLastReset: 0,
+			LastResetTime:     time.Now(),
+			LastResetTimeUnix: time.Now().Unix(),
+			LastServerUptime:  0,
 		}
 	}
 

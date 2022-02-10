@@ -15,7 +15,6 @@ import (
 // have been reset, then the socket connection will be closed.
 type JS5Connection interface {
 	WriteJS5Header() (int, error)
-
 	Ping() error
 }
 
@@ -135,7 +134,6 @@ func (c *js5conn) writePID() error {
 }
 
 func intToByteArray(num int) []byte {
-	//return append(make([]byte, 0), byte(num))
 	return []byte{byte(num)}
 }
 

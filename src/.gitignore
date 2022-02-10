@@ -3,3 +3,4 @@ TestDB.db
 test.bat
 info.log
 secretSalt.go
+ServerResetTimes.db
