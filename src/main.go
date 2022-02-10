@@ -33,8 +33,7 @@ func main() {
 	defer logFile.Close()
 
 	// Start JS5 Monitor
-	js5client.MonitorJS5Server()
-	return
+	go js5client.MonitorJS5Server()
 
 	// Database
 	initDatabase()
