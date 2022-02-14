@@ -3,11 +3,15 @@ package main
 import (
 	"crypto/sha256"
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
+	"github.com/jmoiron/jsonq"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 )
 
 // -------------------------------------------------------------------------- //
@@ -62,4 +66,48 @@ func hashIPAndWorldInfo(ip string, worldNumber int) uint64 {
 	// Then salt with world number. Now ip+worldNumber should be unique and can be used as key
 	worldNumberSaltIP := hashIPAddress(strconv.FormatUint(privateSaltIP, 10), strconv.Itoa(worldNumber))
 	return worldNumberSaltIP
+}
+
+// -------------------------------------------------------------------------- //
+// --------------------------- Get JS5 ServerInfo ---------------------------- //
+// -------------------------------------------------------------------------- //
+func getJS5ServerInfo(lastResetTime *int64) {
+	resp, err := http.Get("http://localhost:8081/lastreset")
+
+	if err != nil {
+		createAndLogCustomError(err, "Error getting JS5 Server Info.")
+		return
+	}
+
+	if resp == nil {
+		createAndLogCustomError(err, "Resp was nil in getJS5ServerInfo.")
+		return
+	}
+
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		createAndLogCustomError(err, "Error reading response body when getting JS5 ServerInfo.")
+		return
+	}
+
+	lastResetTimeUnixFloat, err := getJQObject(body).Float("last_reset_time_unix")
+	if err != nil {
+		createAndLogCustomError(err, "Error grabbing string Unix time from JSON.")
+		return
+	}
+
+	*lastResetTime = int64(lastResetTimeUnixFloat)
+}
+
+func getJQObject(body []byte) *jsonq.JsonQuery {
+	jsonString := string(body)
+	data := map[string]interface{}{}
+	dec := json.NewDecoder(strings.NewReader(jsonString))
+	dec.Decode(&data)
+	jq := jsonq.NewQuery(data)
+
+	return jq
 }

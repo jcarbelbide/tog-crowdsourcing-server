@@ -3,11 +3,12 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"github.com/gorilla/mux"
 	_ "github.com/mattn/go-sqlite3"
 	"log"
 	"net/http"
-	"tog-crowdsourcing-server/js5client"
+	"time"
 )
 
 type WorldInformation struct {
@@ -16,24 +17,27 @@ type WorldInformation struct {
 	StreamOrder string `json:"stream_order"`
 }
 
-var db *sql.DB
+var (
+	db                *sql.DB
+	lastResetTimeUnix int64
+)
 
 const (
-	minWorldValue = 300
-	maxWorldValue = 1000 // allowing for Jagex to add plenty more servers.
+	minWorldValue         = 300
+	maxWorldValue         = 1000 // allowing for Jagex to add plenty more servers.
+	pollJS5ServerInterval = 5000
 )
 
 func main() {
-	// TODO: Add unix time to server info.
-	// TODO: Change name of senconds since last server reset to server up for or something
+	// TODO: Change JS5 Monitor to its own repo
 	// TODO: Change prints to logging
 
 	// Init Logger
 	logFile := initLogging()
 	defer logFile.Close()
 
-	// Start JS5 Monitor
-	go js5client.MonitorJS5Server()
+	// Start Polling JS5 ServerInfo
+	go pollJS5Server()
 
 	// Database
 	initDatabase()
@@ -45,22 +49,12 @@ func main() {
 	r.HandleFunc("/worldinformation", getWorldInformation).Methods("GET")
 	r.HandleFunc("/worldinformation", postWorldInformation).Methods("POST")
 
-	r.HandleFunc("/lastreset", getLastReset).Methods("GET")
-
 	log.Fatal(http.ListenAndServe(":8080", r))
 }
 
 // -------------------------------------------------------------------------- //
 // ---------------------------- Request Handlers ---------------------------- //
 // -------------------------------------------------------------------------- //
-
-func getLastReset(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	lastReset := js5client.LastServerResetInfo
-	json.NewEncoder(w).Encode(lastReset)
-	return
-}
-
 func getWorldInformation(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -109,4 +103,15 @@ func postWorldInformation(w http.ResponseWriter, r *http.Request) {
 
 	}
 
+}
+
+// -------------------------------------------------------------------------- //
+// -------------------------- Poll JS5 ServerInfo --------------------------- //
+// -------------------------------------------------------------------------- //
+func pollJS5Server() {
+	for {
+		getJS5ServerInfo(&lastResetTimeUnix)
+		fmt.Println(lastResetTimeUnix)
+		time.Sleep(pollJS5ServerInterval * time.Millisecond)
+	}
 }
