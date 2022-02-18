@@ -2,7 +2,7 @@ package main
 
 import (
 	"crypto/sha256"
-	"encoding/binary"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/jmoiron/jsonq"
@@ -43,7 +43,7 @@ func getRemoteIPAddressFromRequest(r *http.Request) string {
 // ---------------------------- Hashing IP Info ----------------------------- //
 // -------------------------------------------------------------------------- //
 
-func hashIPAddress(ip string, salt string) uint64 {
+func hashIPAddress(ip string, salt string) string {
 	// Because we do not have a public key (username) to search the database with, if we store ips with random salts,
 	// it would require us to go through every single entry in the db to find a match, since rehashing ips wont result in
 	// the same hash. Therefore, we will just use a private (secret) salt value that will be left on the server. I know
@@ -55,16 +55,17 @@ func hashIPAddress(ip string, salt string) uint64 {
 	h := sha256.New()
 	h.Write(ipByteSalted)
 	hashedIP := h.Sum(nil)
-	intHashedIP := binary.BigEndian.Uint64(hashedIP)
+	//intHashedIP := binary.BigEndian.Uint64(hashedIP)			// This gets a hash in number form
+	stringHashedIP := hex.EncodeToString(hashedIP)
 
-	return intHashedIP
+	return stringHashedIP
 }
 
-func hashIPAndWorldInfo(ip string, worldNumber int) uint64 {
+func hashIPAndWorldInfo(ip string, worldNumber int) string {
 	// First salt with private salt
 	privateSaltIP := hashIPAddress(ip, privateSalt)
 	// Then salt with world number. Now ip+worldNumber should be unique and can be used as key
-	worldNumberSaltIP := hashIPAddress(strconv.FormatUint(privateSaltIP, 10), strconv.Itoa(worldNumber))
+	worldNumberSaltIP := hashIPAddress(privateSaltIP, strconv.Itoa(worldNumber))
 	return worldNumberSaltIP
 }
 

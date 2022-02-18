@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 )
 
 // ------------------------------------------------------------------------- //
@@ -15,7 +16,7 @@ func initDatabase() {
 	statement, _ := db.Prepare("CREATE TABLE IF NOT EXISTS World_Information (wi_id INTEGER PRIMARY KEY AUTOINCREMENT, world_number INTEGER, hits INTEGER, stream_order TEXT)")
 	statement.Exec()
 
-	statement, _ = db.Prepare("CREATE TABLE IF NOT EXISTS IP_World_Blacklist (ip_world_hash INTEGER PRIMARY KEY)")
+	statement, _ = db.Prepare("CREATE TABLE IF NOT EXISTS IP_World_Blacklist (ip_world_hash TEXT PRIMARY KEY)")
 	statement.Exec()
 }
 
@@ -98,6 +99,24 @@ func addNewWorldInformation(worldInformation WorldInformation, database *sql.DB)
 
 }
 
+// Clear hits on server reset
+func clearHitsOnServerReset(database *sql.DB) {
+	statement, _ := database.Prepare("UPDATE World_Information SET hits=0")
+	_, err := statement.Exec()
+
+	if err != nil {
+		err = createAndLogCustomError(err, "Error clearing hits in clearHitsOnServerReset.")
+	}
+
+	statement, _ = database.Prepare("UPDATE IP_World_Blacklist SET ip_world_hash=NULL")
+	_, err = statement.Exec()
+
+	if err != nil {
+		err = createAndLogCustomError(err, "Error clearing hits in clearHitsOnServerReset.")
+	}
+
+}
+
 // ------------------------------------------------------------------------- //
 // ---------------------- IP_World_Blacklist Handling ---------------------- //
 // ------------------------------------------------------------------------- //
@@ -126,6 +145,7 @@ func hasIPAlreadySubmittedDataForWorld(ipAddress string, worldNumber int, databa
 
 func addIPAndWorldToDB(worldInformation WorldInformation, ipAddress string, database *sql.DB) {
 	ipWorldHash := hashIPAndWorldInfo(ipAddress, worldInformation.WorldNumber)
+	fmt.Println(ipWorldHash)
 	statement, _ := database.Prepare("INSERT INTO IP_World_Blacklist (ip_world_hash) Values ((?))")
 	_, err := statement.Exec(ipWorldHash)
 	if err != nil {

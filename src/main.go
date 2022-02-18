@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"github.com/gorilla/mux"
 	_ "github.com/mattn/go-sqlite3"
 	"log"
@@ -29,7 +28,6 @@ const (
 )
 
 func main() {
-	// TODO: Change JS5 Monitor to its own repo
 	// TODO: Change prints to logging
 
 	// Init Logger
@@ -109,9 +107,20 @@ func postWorldInformation(w http.ResponseWriter, r *http.Request) {
 // -------------------------- Poll JS5 ServerInfo --------------------------- //
 // -------------------------------------------------------------------------- //
 func pollJS5Server() {
-	for {
-		getJS5ServerInfo(&lastResetTimeUnix)
-		fmt.Println(lastResetTimeUnix)
+	var liveLastResetTimeUnix int64 = 0
+	initLastResetTimeUnix()
+
+	for { // Poll forever in goroutine
+		getJS5ServerInfo(&liveLastResetTimeUnix)
 		time.Sleep(pollJS5ServerInterval * time.Millisecond)
+
+		if liveLastResetTimeUnix != lastResetTimeUnix {
+			clearHitsOnServerReset(db)
+			lastResetTimeUnix = liveLastResetTimeUnix
+		}
 	}
+}
+
+func initLastResetTimeUnix() {
+	getJS5ServerInfo(&lastResetTimeUnix)
 }

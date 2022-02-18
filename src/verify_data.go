@@ -2,7 +2,7 @@ package main
 
 import (
 	"database/sql"
-	"net"
+	"fmt"
 )
 
 // -------------------------------------------------------------------------- //
@@ -56,15 +56,16 @@ func verifyIPAddressIsValid(worldInformation WorldInformation, remoteIPAddress s
 	var err error
 
 	// First check if the ip address is a valid IPv4 address
-	if net.ParseIP(remoteIPAddress) == nil {
-		err = createAndLogCustomError(nil, "Not valid IPv4 address")
-		return false, err
-	}
+	//if net.ParseIP(remoteIPAddress) == nil {
+	//	err = createAndLogCustomError(nil, "Not valid IPv4 address")
+	//	return false, err
+	//}
 
 	// Check if IP has already submitted an order for that world. Do not care about the order, just care about the world. Each IP gets 1 submission per world.
 
 	// If IP + world combo exists, return false. IP address is not valid.
 	ipAlreadySubmittedDataForWorld, err := hasIPAlreadySubmittedDataForWorld(remoteIPAddress, worldInformation.WorldNumber, db)
+	fmt.Println(ipAlreadySubmittedDataForWorld, remoteIPAddress)
 	if ipAlreadySubmittedDataForWorld {
 		return false, err
 
