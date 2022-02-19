@@ -2,7 +2,7 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
+	"log"
 )
 
 // -------------------------------------------------------------------------- //
@@ -64,8 +64,8 @@ func verifyIPAddressIsValid(worldInformation WorldInformation, remoteIPAddress s
 	// Check if IP has already submitted an order for that world. Do not care about the order, just care about the world. Each IP gets 1 submission per world.
 
 	// If IP + world combo exists, return false. IP address is not valid.
-	ipAlreadySubmittedDataForWorld, err := hasIPAlreadySubmittedDataForWorld(remoteIPAddress, worldInformation.WorldNumber, db)
-	fmt.Println(ipAlreadySubmittedDataForWorld, remoteIPAddress)
+	ipAlreadySubmittedDataForWorld, err := hasIPAlreadySubmittedDataForWorld(remoteIPAddress, worldInformation.WorldNumber, database)
+	log.Println(ipAlreadySubmittedDataForWorld, remoteIPAddress)
 	if ipAlreadySubmittedDataForWorld {
 		return false, err
 

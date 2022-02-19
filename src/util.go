@@ -36,7 +36,12 @@ func initLogging() *os.File {
 }
 
 func getRemoteIPAddressFromRequest(r *http.Request) string {
-	return r.Header.Get("X-FORWARDED-FOR") // It is this because our NGinX server is forwarding the remote IP to us.
+	remoteAddr := r.Header.Get("X-FORWARDED-FOR")
+	if strings.Contains(remoteAddr, ",") {
+		remoteAddr = strings.ReplaceAll(remoteAddr, " ", "")
+		remoteAddr = strings.Split(remoteAddr, ",")[0]
+	}
+	return remoteAddr // It is this because our NGinX server is forwarding the remote IP to us.
 }
 
 // -------------------------------------------------------------------------- //
