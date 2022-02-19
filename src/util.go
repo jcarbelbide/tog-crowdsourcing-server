@@ -81,12 +81,12 @@ func getJS5ServerInfo(lastResetTime *int64) {
 	resp, err := http.Get("http://localhost:8081/lastreset")
 
 	if err != nil {
-		createAndLogCustomError(err, "Error getting JS5 Server Info.")
+		err = createAndLogCustomError(err, "Error getting JS5 Server Info.")
 		return
 	}
 
 	if resp == nil {
-		createAndLogCustomError(err, "Resp was nil in getJS5ServerInfo.")
+		err = createAndLogCustomError(err, "Resp was nil in getJS5ServerInfo.")
 		return
 	}
 
@@ -95,13 +95,13 @@ func getJS5ServerInfo(lastResetTime *int64) {
 	body, err := ioutil.ReadAll(resp.Body)
 
 	if err != nil {
-		createAndLogCustomError(err, "Error reading response body when getting JS5 ServerInfo.")
+		err = createAndLogCustomError(err, "Error reading response body when getting JS5 ServerInfo.")
 		return
 	}
 
 	lastResetTimeUnixFloat, err := getJQObject(body).Float("last_reset_time_unix")
 	if err != nil {
-		createAndLogCustomError(err, "Error grabbing string Unix time from JSON.")
+		err = createAndLogCustomError(err, "Error grabbing string Unix time from JSON.")
 		return
 	}
 

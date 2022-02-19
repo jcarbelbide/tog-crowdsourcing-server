@@ -44,8 +44,8 @@ func main() {
 	r := mux.NewRouter()
 
 	// Route Handlers / Endpoints
-	r.HandleFunc("/worldinformation", getWorldInformation).Methods("GET")
-	r.HandleFunc("/worldinformation", postWorldInformation).Methods("POST")
+	r.HandleFunc("/worldinfo", getWorldInformation).Methods("GET")
+	r.HandleFunc("/worldinfo", postWorldInformation).Methods("POST")
 
 	log.Fatal(http.ListenAndServe(":8080", r))
 }
@@ -67,7 +67,10 @@ func postWorldInformation(w http.ResponseWriter, r *http.Request) {
 
 	remoteIPAddress := getRemoteIPAddressFromRequest(r)
 	var newWorldInformation WorldInformation
-	json.NewDecoder(r.Body).Decode(&newWorldInformation)
+	err := json.NewDecoder(r.Body).Decode(&newWorldInformation)
+	if err != nil {
+		err = createAndLogCustomError(err, "Error when trying to decode body json in postWorldInformation")
+	}
 
 	dataIsValid := verifyDataIsValid(newWorldInformation)
 	if !dataIsValid {
