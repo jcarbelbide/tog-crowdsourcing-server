@@ -99,20 +99,38 @@ func addNewWorldInformation(worldInformation WorldInformation, database *sql.DB)
 
 }
 
+// Clear hits on server reset. Unused in favor of clearing entire table
+//func clearHitsOnServerReset(database *sql.DB) {
+//	statement, _ := database.Prepare("UPDATE World_Information SET hits=0")
+//	_, err := statement.Exec()
+//
+//	if err != nil {
+//		err = createAndLogCustomError(err, "Error clearing hits in clearHitsOnServerReset.")
+//	}
+//
+//	statement, _ = database.Prepare("UPDATE IP_World_Blacklist SET ip_world_hash=NULL")
+//	_, err = statement.Exec()
+//
+//	if err != nil {
+//		err = createAndLogCustomError(err, "Error clearing hits in clearHitsOnServerReset.")
+//	}
+//
+//}
+
 // Clear hits on server reset
-func clearHitsOnServerReset(database *sql.DB) {
-	statement, _ := database.Prepare("UPDATE World_Information SET hits=0")
+func clearDBOnServerReset(database *sql.DB) {
+	statement, _ := database.Prepare("DELETE FROM World_Information")
 	_, err := statement.Exec()
 
 	if err != nil {
-		err = createAndLogCustomError(err, "Error clearing hits in clearHitsOnServerReset.")
+		err = createAndLogCustomError(err, "Error clearing hits in clearDBOnServerReset.")
 	}
 
-	statement, _ = database.Prepare("UPDATE IP_World_Blacklist SET ip_world_hash=NULL")
+	statement, _ = database.Prepare("DELETE FROM IP_World_Blacklist")
 	_, err = statement.Exec()
 
 	if err != nil {
-		err = createAndLogCustomError(err, "Error clearing hits in clearHitsOnServerReset.")
+		err = createAndLogCustomError(err, "Error clearing hits in clearDBOnServerReset.")
 	}
 
 }

@@ -118,7 +118,7 @@ func pollJS5Server() {
 		time.Sleep(pollJS5ServerInterval * time.Millisecond)
 
 		if liveLastResetTimeUnix != lastResetTimeUnix {
-			clearHitsOnServerReset(db)
+			clearDBOnServerReset(db)
 			lastResetTimeUnix = liveLastResetTimeUnix
 		}
 	}
