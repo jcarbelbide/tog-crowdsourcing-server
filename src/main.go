@@ -55,6 +55,7 @@ func main() {
 // -------------------------------------------------------------------------- //
 func getWorldInformation(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	worldInformationList := queryDBForAllWorldInformation(db)
 
