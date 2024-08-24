@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 )
 
 // ------------------------------------------------------------------------- //
@@ -23,6 +22,20 @@ func initDatabase() {
 // ------------------------------------------------------------------------- //
 // ----------------------------- World Info DB ----------------------------- //
 // ------------------------------------------------------------------------- //
+
+type DBWrapper struct {
+	db *sql.DB
+}
+
+func NewDBWrapper(db *sql.DB) *DBWrapper {
+	return &DBWrapper{
+		db: db,
+	}
+}
+
+func (w *DBWrapper) GetWorldData() []WorldInformation {
+	return queryDBForAllWorldInformation(w.db)
+}
 
 // Get information for ALL worlds
 func queryDBForAllWorldInformation(database *sql.DB) []WorldInformation {
@@ -163,7 +176,6 @@ func hasIPAlreadySubmittedDataForWorld(ipAddress string, worldNumber int, databa
 
 func addIPAndWorldToDB(worldInformation WorldInformation, ipAddress string, database *sql.DB) {
 	ipWorldHash := hashIPAndWorldInfo(ipAddress, worldInformation.WorldNumber)
-	fmt.Println(ipWorldHash)
 	statement, _ := database.Prepare("INSERT INTO IP_World_Blacklist (ip_world_hash) Values ((?))")
 	_, err := statement.Exec(ipWorldHash)
 	if err != nil {

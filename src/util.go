@@ -4,8 +4,8 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"github.com/jmoiron/jsonq"
+	"github.com/pkg/errors"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -19,7 +19,7 @@ import (
 // -------------------------------------------------------------------------- //
 
 func createAndLogCustomError(err error, message string) error {
-	newErr := fmt.Errorf(message+" %w", err)
+	newErr := errors.Wrap(err, message)
 	log.Println(newErr)
 	return newErr
 }
@@ -68,6 +68,7 @@ func hashIPAddress(ip string, salt string) string {
 
 func hashIPAndWorldInfo(ip string, worldNumber int) string {
 	// First salt with private salt
+	// secretSalt should be stored in secretSalt.go
 	privateSaltIP := hashIPAddress(ip, privateSalt)
 	// Then salt with world number. Now ip+worldNumber should be unique and can be used as key
 	worldNumberSaltIP := hashIPAddress(privateSaltIP, strconv.Itoa(worldNumber))
