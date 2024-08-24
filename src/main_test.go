@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"testing"
 )
 
@@ -26,7 +25,7 @@ func TestVerifyData(t *testing.T) {
 		worldInformation.StreamOrder = test.inputStreamOrder
 		actual := verifyDataIsValid(worldInformation)
 		if actual != test.expectedOutput {
-			t.Error(fmt.Sprintf("Test Failed: Input: %d, %s, Expected: %t, Actual: %t", test.inputWorldNumber, test.inputStreamOrder, test.expectedOutput, actual))
+			t.Errorf("Test Failed: Input: %d, %s, Expected: %t, Actual: %t", test.inputWorldNumber, test.inputStreamOrder, test.expectedOutput, actual)
 		}
 	}
 }
@@ -78,7 +77,7 @@ func TestVerifyStreamOrder(t *testing.T) {
 	for _, test := range tests {
 		actual := verifyStreamOrderIsValid(test.input)
 		if actual != test.expected {
-			t.Error(fmt.Sprintf("Test Failed: Input: %s, Expected: %t, Actual: %t", test.input, test.expected, actual))
+			t.Errorf("Test Failed: Input: %s, Expected: %t, Actual: %t", test.input, test.expected, actual)
 		}
 	}
 }
@@ -122,7 +121,7 @@ func TestHasIPAlreadySubmittedDataForWorld(t *testing.T) {
 	for _, test := range tests {
 		actual, _ := hasIPAlreadySubmittedDataForWorld(test.inputIPAddress, test.inputWorld, testDB)
 		if actual != test.expectedOutput {
-			t.Error(fmt.Sprintf("Test Failed: Input: %d, %s, Expected: %t, Actual: %t", test.inputWorld, test.inputIPAddress, test.expectedOutput, actual))
+			t.Errorf("Test Failed: Input: %d, %s, Expected: %t, Actual: %t", test.inputWorld, test.inputIPAddress, test.expectedOutput, actual)
 		}
 	}
 

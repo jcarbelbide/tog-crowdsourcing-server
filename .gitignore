@@ -7,3 +7,4 @@ ServerResetTimes.db
 rebuild.sh
 nano.save
 secretSalt.go.save
+.idea

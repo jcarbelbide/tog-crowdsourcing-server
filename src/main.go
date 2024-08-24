@@ -19,6 +19,7 @@ type WorldInformation struct {
 var (
 	db                *sql.DB
 	lastResetTimeUnix int64
+	cache             *Cache
 )
 
 const (
@@ -40,6 +41,9 @@ func main() {
 	// Database
 	initDatabase()
 
+	// Cache
+	cache = NewCache(NewDBWrapper(db))
+
 	// Init Router
 	r := mux.NewRouter()
 
@@ -57,9 +61,13 @@ func getWorldInformation(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
-	worldInformationList := queryDBForAllWorldInformation(db)
+	worldInformationList := cache.Get()
 
-	json.NewEncoder(w).Encode(worldInformationList)
+	err := json.NewEncoder(w).Encode(worldInformationList)
+	if err != nil {
+		err = createAndLogCustomError(err, "Encode to world information list")
+	}
+
 	return
 }
 
@@ -71,6 +79,7 @@ func postWorldInformation(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&newWorldInformation)
 	if err != nil {
 		err = createAndLogCustomError(err, "Error when trying to decode body json in postWorldInformation")
+		return
 	}
 
 	dataIsValid := verifyDataIsValid(newWorldInformation)
@@ -81,30 +90,33 @@ func postWorldInformation(w http.ResponseWriter, r *http.Request) {
 	ipAddressIsValid, err := verifyIPAddressIsValid(newWorldInformation, remoteIPAddress, db)
 	if err != nil {
 		err = createAndLogCustomError(err, "Error when trying to verify if IP address was valid")
-	}
-
-	if ipAddressIsValid {
-		addIPAndWorldToDB(newWorldInformation, remoteIPAddress, db)
-	} else {
 		return
 	}
 
-	if dataIsValid {
-		// First, check to see if the world + stream order combo is already in the db.
-		entryExistsInDB, existingWorldInformation := queryDBForSpecificWorldInformation(newWorldInformation, db)
-
-		// If it is, hits++ and update db
-		if entryExistsInDB {
-			incrementHitsOnExistingWorld(&existingWorldInformation, db)
-			json.NewEncoder(w).Encode(existingWorldInformation)
-		} else { // Else add it to the db
-			newWorldInformation.Hits = 1
-			addNewWorldInformation(newWorldInformation, db)
-			json.NewEncoder(w).Encode(newWorldInformation)
-		}
-
+	if !ipAddressIsValid {
+		return
 	}
 
+	addIPAndWorldToDB(newWorldInformation, remoteIPAddress, db)
+
+	// First, check to see if the world + stream order combo is already in the db.
+	entryExistsInDB, existingWorldInformation := queryDBForSpecificWorldInformation(newWorldInformation, db)
+	if entryExistsInDB {
+		// If it is, hits++ and update db
+		incrementHitsOnExistingWorld(&existingWorldInformation, db)
+		if err = json.NewEncoder(w).Encode(existingWorldInformation); err != nil {
+			err = createAndLogCustomError(err, "encode existing world info")
+		}
+
+		return
+	}
+
+	// Else add it to the db
+	newWorldInformation.Hits = 1
+	addNewWorldInformation(newWorldInformation, db)
+	if err = json.NewEncoder(w).Encode(newWorldInformation); err != nil {
+		err = createAndLogCustomError(err, "encode new world info")
+	}
 }
 
 // -------------------------------------------------------------------------- //
